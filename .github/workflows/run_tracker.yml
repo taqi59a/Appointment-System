@@ -44,9 +44,10 @@ jobs:
           VOW_PASSWORD: ${{ secrets.VOW_PASSWORD }}
           VOW_APP_ID: ${{ secrets.VOW_APP_ID }}
           CI: "true"
+        working-directory: belgium-visa-tracker
         run: |
           set -o pipefail
-          python tracker.py 2>&1 | tee tracker_output.txt
+          python tracker.py 2>&1 | tee ../tracker_output.txt
           TRACKER_EXIT=${PIPESTATUS[0]}
           echo "exit_code=${TRACKER_EXIT}" >> "$GITHUB_OUTPUT"
           exit 0  # never let this step itself fail — handled below
@@ -56,7 +57,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: booking-confirmation
-          path: booking_confirmation.png
+          path: belgium-visa-tracker/booking_confirmation.png
           if-no-files-found: warn
 
       - name: Create GitHub Issue — appointment booked
