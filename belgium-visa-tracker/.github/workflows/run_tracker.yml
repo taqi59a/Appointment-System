@@ -43,7 +43,6 @@ jobs:
           VOW_USERNAME: ${{ secrets.VOW_USERNAME }}
           VOW_PASSWORD: ${{ secrets.VOW_PASSWORD }}
           VOW_APP_ID: ${{ secrets.VOW_APP_ID }}
-          ICLOUD_APP_PASSWORD: ${{ secrets.ICLOUD_APP_PASSWORD }}
           CI: "true"
         run: |
           set -o pipefail

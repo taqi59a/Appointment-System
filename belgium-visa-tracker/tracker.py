@@ -4,10 +4,7 @@
 import os
 import sys
 import time
-import smtplib
 import logging
-from email.mime.multipart import MIMEMultipart
-from email.mime.text import MIMEText
 from playwright.sync_api import sync_playwright, TimeoutError as PlaywrightTimeout
 
 # ---------------------------------------------------------------------------
@@ -17,10 +14,6 @@ TARGET_URL = "https://visaonweb.diplomatie.be/en"
 VOW_USERNAME = os.environ["VOW_USERNAME"]
 VOW_PASSWORD = os.environ["VOW_PASSWORD"]
 VOW_APP_ID = os.environ["VOW_APP_ID"]
-ICLOUD_APP_PASSWORD = os.environ.get("ICLOUD_APP_PASSWORD", "")
-
-SMTP_SERVER = "smtp.mail.me.com"
-SMTP_PORT = 587
 
 PERSISTENT_CONTEXT_DIR = "./vow_user_data"
 SCREENSHOT_PATH = "./booking_confirmation.png"
@@ -88,81 +81,6 @@ CONFIRM_SELECTORS = [
     '[class*="confirm"]',
     '[class*="submit"]',
 ]
-
-
-# ---------------------------------------------------------------------------
-# Email (booking confirmation)
-# ---------------------------------------------------------------------------
-
-def send_booking_confirmation(booking_detail: str) -> None:
-    if not ICLOUD_APP_PASSWORD:
-        log.warning("ICLOUD_APP_PASSWORD not set — skipping confirmation email")
-        return
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = "✅ VISA APPOINTMENT BOOKED — KINSHASA"
-    msg["From"] = VOW_USERNAME
-    msg["To"] = VOW_USERNAME
-
-    html_body = f"""
-<!DOCTYPE html>
-<html>
-<body style="margin:0;padding:0;font-family:Arial,Helvetica,sans-serif;background:#f5f5f5;">
-  <table width="100%" cellpadding="0" cellspacing="0">
-    <tr>
-      <td align="center" style="padding:40px 20px;">
-        <table width="600" cellpadding="0" cellspacing="0"
-               style="background:#fff;border-radius:8px;overflow:hidden;
-                      box-shadow:0 2px 12px rgba(0,0,0,.15);">
-          <tr>
-            <td style="background:#2e7d32;padding:24px 32px;">
-              <h1 style="margin:0;color:#fff;font-size:22px;">
-                ✅ APPOINTMENT BOOKED SUCCESSFULLY
-              </h1>
-            </td>
-          </tr>
-          <tr>
-            <td style="padding:32px;">
-              <p style="font-size:16px;color:#333;margin-top:0;">
-                Your visa appointment has been <strong>automatically booked</strong> for<br>
-                application <code style="background:#f5f5f5;padding:2px 6px;
-                border-radius:4px;">{VOW_APP_ID}</code>.
-              </p>
-              <p style="font-size:14px;color:#555;">Booking details:</p>
-              <pre style="background:#f9f9f9;border:1px solid #ddd;border-radius:4px;
-                          padding:12px;font-size:13px;overflow-x:auto;
-                          white-space:pre-wrap;">{booking_detail}</pre>
-              <p style="text-align:center;margin:32px 0 0;">
-                <a href="{TARGET_URL}"
-                   style="background:#2e7d32;color:#fff;text-decoration:none;
-                          padding:14px 32px;border-radius:6px;font-size:16px;
-                          font-weight:bold;display:inline-block;">
-                  ➜ View your appointment
-                </a>
-              </p>
-              <p style="font-size:12px;color:#999;margin-top:24px;text-align:center;">
-                A screenshot of the confirmation page has been saved in the workflow artifacts.
-              </p>
-            </td>
-          </tr>
-        </table>
-      </td>
-    </tr>
-  </table>
-</body>
-</html>
-"""
-    msg.attach(MIMEText(html_body, "html"))
-
-    try:
-        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=30) as server:
-            server.ehlo()
-            server.starttls()
-            server.login(VOW_USERNAME, ICLOUD_APP_PASSWORD)
-            server.sendmail(VOW_USERNAME, VOW_USERNAME, msg.as_string())
-        log.info("Booking confirmation email sent to %s", VOW_USERNAME)
-    except Exception as exc:
-        log.error("Confirmation email failed: %s", exc)
 
 
 # ---------------------------------------------------------------------------
@@ -395,7 +313,6 @@ def run_tracker() -> int:
 
             if confirmation:
                 print(f"BOOKED\n{confirmation}", flush=True)
-                send_booking_confirmation(confirmation)
                 return 1  # success — triggers GH Actions issue + job failure for notification
             else:
                 log.error("Slot was found but booking could not be completed.")
